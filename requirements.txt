@@ -1,0 +1,21 @@
+# Flask Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+# Kafka Python Client
+kafka-python==2.0.2
+# Apache Spark (PySpark)
+pyspark==3.5.0
+# MongoDB Driver
+pymongo==4.5.0
+# HTTP Requests
+requests==2.31.0
+# Data Processing & Analysis (optional but useful)
+pandas==2.1.1
+numpy==1.24.3
+# Development & Testing (optional)
+pytest==7.4.2
+python-dotenv==1.0.0
+# Logging (optional enhancement)
+colorlog==6.7.0
+# System monitoring (optional)
+psutil==5.9.5

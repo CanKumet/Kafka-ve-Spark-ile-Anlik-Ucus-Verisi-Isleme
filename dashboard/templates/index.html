@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uçak Takip Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .recent-flights {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .flight-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .flight-table th,
+        .flight-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .flight-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+
+        .flight-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-airborne {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .status-ground {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .update-info {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .chart-wrapper {
+                height: 250px;
+            }
+
+            .flight-table {
+                font-size: 0.8rem;
+            }
+
+            .flight-table th,
+            .flight-table td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>✈️ Uçak Takip Dashboard</h1>
+            <p>Gerçek zamanlı uçak verileri</p>
+        </div>
+
+        <!-- İstatistik Kartları -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="total-flights">0</div>
+                <div class="stat-label">Toplam Uçak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-flights">0</div>
+                <div class="stat-label">Aktif Uçak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="airborne-flights">0</div>
+                <div class="stat-label">Havadaki</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="grounded-flights">0</div>
+                <div class="stat-label">Yerdeki</div>
+            </div>
+        </div>
+
+        <!-- Ülkeler Grafiği -->
+        <div class="chart-container">
+            <div class="chart-title">📍 En Çok Uçak Olan Ülkeler</div>
+            <div class="chart-wrapper">
+                <canvas id="countriesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Son Uçaklar Tablosu -->
+        <div class="recent-flights">
+            <div class="chart-title">🕒 Son Güncellenen Uçaklar</div>
+            <div id="recent-flights-content">
+                <div class="loading">Veriler yükleniyor...</div>
+            </div>
+        </div>
+
+        <!-- Güncelleme Bilgisi -->
+        <div class="update-info">
+            Son güncelleme: <span id="last-update">-</span> |
+            Otomatik güncelleme: 30 saniye
+        </div>
+    </div>
+
+   <script>
+    let countriesChart = null;
+    let mockData = {}; // Artık boş, API'den gelecek
+
+    // Sayı animasyonu
+    function animateNumber(element, target) {
+        const start = parseInt(element.textContent) || 0;
+        const duration = 1000;
+        const startTime = Date.now();
+        function update() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const current = Math.floor(start + (target - start) * progress);
+            element.textContent = current.toLocaleString();
+            if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+    }
+
+    function updateStats() {
+        const stats = mockData.stats || {};
+        animateNumber(document.getElementById('total-flights'), stats.total_flights || 0);
+        animateNumber(document.getElementById('active-flights'), stats.active_flights || 0);
+        animateNumber(document.getElementById('airborne-flights'), stats.airborne_flights || 0);
+        animateNumber(document.getElementById('grounded-flights'), stats.grounded_flights || 0);
+    }
+
+    function updateCountriesChart() {
+        const ctx = document.getElementById('countriesChart').getContext('2d');
+        if (countriesChart) countriesChart.destroy();
+        const countries = mockData.countries || [];
+        countriesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: countries.map(item => item.country),
+                datasets: [{
+                    label: 'Uçak Sayısı',
+                    data: countries.map(item => item.count),
+                    backgroundColor: [
+                        '#3498db', '#e74c3c', '#2ecc71',
+                        '#f39c12', '#9b59b6', '#1abc9c'
+                    ],
+                    borderWidth: 0,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                    x: { ticks: { maxRotation: 45 } }
+                }
+            }
+        });
+    }
+
+    function updateRecentFlights() {
+        const container = document.getElementById('recent-flights-content');
+        const flights = mockData.recentFlights || [];
+        const tableHTML = `
+            <table class="flight-table">
+                <thead>
+                    <tr>
+                        <th>ICAO24</th>
+                        <th>Çağrı İşareti</th>
+                        <th>Ülke</th>
+                        <th>Yükseklik</th>
+                        <th>Hız</th>
+                        <th>Durum</th>
+                        <th>Son İletişim</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${flights.map(flight => `
+                        <tr>
+                            <td><strong>${flight.icao24}</strong></td>
+                            <td>${flight.callsign || '-'}</td>
+                            <td>${flight.origin_country}</td>
+                            <td>${flight.baro_altitude ? Math.round(flight.baro_altitude) + ' m' : '-'}</td>
+                            <td>${flight.velocity ? Math.round(flight.velocity) + ' m/s' : '-'}</td>
+                            <td>
+                                <span class="${flight.on_ground ? 'status-ground' : 'status-airborne'}">
+                                    ${flight.on_ground ? 'Yerde' : 'Havada'}
+                                </span>
+                            </td>
+                            <td>${flight.last_contact_readable}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        container.innerHTML = tableHTML;
+    }
+
+    function updateLastUpdateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('tr-TR');
+        document.getElementById('last-update').textContent = timeString;
+    }
+
+    // Anlık veri çekme ve arayüzü güncelleme
+    function updateAllData() {
+        fetch('/api/veri') // BACKEND'in güncel veri döndüren endpoint'i
+            .then(res => res.json())
+            .then(data => {
+                mockData = data;
+                updateLastUpdateTime();
+                updateStats();
+                updateCountriesChart();
+                updateRecentFlights();
+            })
+            .catch(() => {
+                // Sunucuya ulaşılamazsa ekranı boş/eskisi gibi bırakır, hata bastırılır
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        Chart.defaults.font.family = 'Arial, sans-serif';
+        Chart.defaults.font.size = 12;
+        updateAllData();
+        setInterval(updateAllData, 30000);
+    });
+
+    window.addEventListener('resize', function() {
+        if (countriesChart) countriesChart.resize();
+    });
+</script>
+
+</body>
+</html>
