@@ -298,14 +298,6 @@ python main.py
   - [ ] Gelişmiş özellik: Konum verileri harita üzerinde görselleştirilecek
 
 
-## 🤝 Katkıda Bulunma
-
-1. Fork yapın
-2. Feature branch oluşturun (`git checkout -b feature/YeniOzellik`)
-3. Commit yapın (`git commit -am 'Yeni özellik eklendi'`)
-4. Branch'inizi push edin (`git push origin feature/YeniOzellik`)
-5. Pull Request oluşturun
-
 ## 📄 Lisans
 
 Bu proje MIT lisansı altında lisanslanmıştır.
